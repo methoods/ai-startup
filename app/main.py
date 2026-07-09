@@ -1,10 +1,14 @@
-from datetime import datetime
-from config import MODEL
+from ai import ask_ai
 
-print("=" * 40)
 print("🚀 AI STARTUP")
-print("=" * 40)
-print(f"Started: {datetime.now()}")
-print(f"Model: {MODEL}")
-print("Environment is ready!")
-print("=" * 40)
+print("")
+
+prompt = input("Введите тему: ")
+
+answer = ask_ai(prompt)
+
+print("\n==============================")
+print("ОТВЕТ ИИ")
+print("==============================\n")
+
+print(answer)
