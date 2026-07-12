@@ -1,49 +1,81 @@
-from core.planner import Planner
-from core.executor import Executor
+from app.core.executor import Executor
+from app.core.planner import Planner
+from app.storage.project_storage import ProjectStorage
+from app.storage.report_storage import ReportStorage
+
 
 planner = Planner()
 executor = Executor()
 
-goal = input("🎯 Какая ваша цель?\n> ")
+project_storage = ProjectStorage()
+report_storage = ReportStorage()
 
-print("\n📋 План:\n")
+
+print("=" * 50)
+print("🚀 AI STARTUP")
+print("=" * 50)
+
+projects = project_storage.list_projects()
+
+if projects:
+
+    print("\nВаши проекты:\n")
+
+    for i, project in enumerate(projects, start=1):
+        print(f"{i}. {project['goal']}")
+
+print("\nN - Новый проект")
+
+choice = input("\nВыбор: ").strip().lower()
+
+if choice == "n" or not projects:
+
+    goal = input("\n🎯 Новая цель:\n> ")
+
+else:
+
+    goal = projects[int(choice) - 1]["goal"]
+
+project_storage.create_project(goal)
 
 tasks = planner.create_plan(goal)
+
+print("\n📋 План:\n")
 
 for i, task in enumerate(tasks, start=1):
     print(f"{i}. {task}")
 
 while True:
-    choice = input(f"\nВведите номер задачи (1-{len(tasks)}) или q для выхода: ")
+
+    choice = input(f"\nВведите номер задачи (1-{len(tasks)}) или q: ")
 
     if choice.lower() == "q":
-        print("👋 До встречи!")
         break
 
     if not choice.isdigit():
-        print("❌ Введите номер задачи.")
         continue
 
     number = int(choice)
 
     if number < 1 or number > len(tasks):
-        print("❌ Такой задачи нет.")
         continue
 
-    print(f"\n⏳ Выполняю: {tasks[number - 1]}...\n")
+    task = tasks[number - 1]
 
-    result = executor.execute(
-        f"""
-Цель пользователя:
-{goal}
+    print(f"\n⏳ {task}...\n")
 
-Текущая задача:
-{tasks[number - 1]}
+    result = executor.execute(goal, task)
 
-Выполни ее максимально подробно.
-"""
+    print(result)
+
+    report_storage.save(
+        goal=goal,
+        task=task,
+        report=result
     )
 
-    print("=" * 60)
-    print(result)
-    print("=" * 60)
+    project_storage.save_report(
+        goal,
+        task,
+        result
+    )

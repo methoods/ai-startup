@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <title>AI Research Platform</title>
+
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            font-family: Arial, sans-serif;
+            background: #f4f6f8;
+            color: #202124;
+        }
+
+        .layout {
+            display: grid;
+            grid-template-columns: 280px 1fr;
+            min-height: 100vh;
+        }
+
+        .sidebar {
+            padding: 24px;
+            background: #18202b;
+            color: white;
+        }
+
+        .sidebar h1 {
+            margin-top: 0;
+            font-size: 22px;
+        }
+
+        .sidebar h2 {
+            margin-top: 32px;
+            font-size: 16px;
+            color: #aab4c0;
+        }
+
+        .project-link {
+            display: block;
+            padding: 12px;
+            margin-bottom: 8px;
+            border-radius: 8px;
+            color: white;
+            text-decoration: none;
+            background: #253140;
+        }
+
+        .project-link:hover {
+            background: #344459;
+        }
+
+        .empty {
+            color: #aab4c0;
+            font-size: 14px;
+        }
+
+        .main {
+            width: 100%;
+            max-width: 1000px;
+            padding: 40px;
+        }
+
+        .card {
+            margin-bottom: 22px;
+            padding: 24px;
+            border-radius: 14px;
+            background: white;
+            box-shadow: 0 4px 18px rgba(0, 0, 0, 0.07);
+        }
+
+        .goal-input {
+            width: 100%;
+            padding: 15px;
+            border: 1px solid #ccd2d9;
+            border-radius: 9px;
+            font-size: 17px;
+        }
+
+        button {
+            padding: 11px 18px;
+            margin-top: 12px;
+            border: 0;
+            border-radius: 8px;
+            background: #2869e6;
+            color: white;
+            font-size: 15px;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background: #1f56bd;
+        }
+
+        .task {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 16px;
+            padding: 15px 0;
+            border-bottom: 1px solid #e6e9ed;
+        }
+
+        .task:last-child {
+            border-bottom: 0;
+        }
+
+        .task-title {
+            font-size: 16px;
+            font-weight: bold;
+        }
+
+        .status {
+            margin-right: 8px;
+        }
+
+        .task-actions {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .task-actions form {
+            margin: 0;
+        }
+
+        .task-actions button {
+            margin: 0;
+        }
+
+        .report-link {
+            padding: 10px 14px;
+            border-radius: 8px;
+            color: #2869e6;
+            text-decoration: none;
+            background: #edf3ff;
+        }
+
+        pre {
+            margin: 0;
+            white-space: pre-wrap;
+            overflow-wrap: anywhere;
+            font-family: Arial, sans-serif;
+            font-size: 15px;
+            line-height: 1.65;
+        }
+
+        @media (max-width: 800px) {
+            .layout {
+                grid-template-columns: 1fr;
+            }
+
+            .sidebar {
+                min-height: auto;
+            }
+
+            .main {
+                padding: 20px;
+            }
+
+            .task {
+                align-items: flex-start;
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="layout">
+        <aside class="sidebar">
+            <h1>🔎 AI Research</h1>
+
+            <h2>Проекты</h2>
+
+            {% if projects %}
+                {% for project in projects %}
+                    <a
+                        class="project-link"
+                        href="/projects/{{ project.slug }}"
+                    >
+                        {{ project.goal }}
+                    </a>
+                {% endfor %}
+            {% else %}
+                <p class="empty">
+                    Проектов пока нет.
+                </p>
+            {% endif %}
+        </aside>
+
+        <main class="main">
+            <div class="card">
+                <h2>Новый проект</h2>
+
+                <form action="/projects" method="post">
+                    <input
+                        class="goal-input"
+                        type="text"
+                        name="goal"
+                        value="{{ goal }}"
+                        placeholder="Например: открыть ПВЗ Wildberries в Барановичах"
+                        required
+                    >
+
+                    <button type="submit">
+                        Создать проект
+                    </button>
+                </form>
+            </div>
+
+            {% if tasks %}
+                <div class="card">
+                    <h2>{{ goal }}</h2>
+
+                    {% for task in tasks %}
+                        <div class="task">
+                            <div class="task-title">
+                                {% if task in completed_reports %}
+                                    <span class="status">✅</span>
+                                {% else %}
+                                    <span class="status">⬜</span>
+                                {% endif %}
+
+                                {{ task }}
+                            </div>
+
+                            <div class="task-actions">
+                                {% if task in completed_reports %}
+                                    <a
+                                        class="report-link"
+                                        href="/projects/{{ goal | lower | replace(' ', '_') }}/reports/{{ task }}"
+                                    >
+                                        Открыть
+                                    </a>
+                                {% endif %}
+
+                                <form
+                                    action="/execute"
+                                    method="post"
+                                >
+                                    <input
+                                        type="hidden"
+                                        name="goal"
+                                        value="{{ goal }}"
+                                    >
+
+                                    <input
+                                        type="hidden"
+                                        name="task"
+                                        value="{{ task }}"
+                                    >
+
+                                    <button type="submit">
+                                        {% if task in completed_reports %}
+                                            Обновить
+                                        {% else %}
+                                            Выполнить
+                                        {% endif %}
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+            {% endif %}
+
+            {% if report %}
+                <div class="card">
+                    <h2>
+                        {% if selected_task %}
+                            {{ selected_task }}
+                        {% else %}
+                            Результат
+                        {% endif %}
+                    </h2>
+
+                    <pre>{{ report }}</pre>
+                </div>
+            {% endif %}
+        </main>
+    </div>
+</body>
+</html>

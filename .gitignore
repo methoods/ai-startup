@@ -1,4 +1,23 @@
+# Python
+__pycache__/
+*.pyc
+
+# Virtual environment
+venv/
+
+# Environment
+.env
+.env.save
+
+# User data
+projects/
+reports/
+
+# Temporary
+app/test_search.py
+
 # macOS
+.DS_Store# macOS
 .DS_Store
 
 # Python

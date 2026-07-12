@@ -1,15 +1,10 @@
-from ai import ask_ai
+from app.core.router import Router
 
 
 class Executor:
+    def __init__(self) -> None:
+        self.router = Router()
 
-    def execute(self, task: str) -> str:
-
-        prompt = f"""
-Выполни следующую задачу максимально подробно.
-
-Задача:
-{task}
-"""
-
-        return ask_ai(prompt)
+    def execute(self, goal: str, task: str) -> str:
+        agent = self.router.get_agent(task)
+        return agent.run(goal, task)
