@@ -1,64 +1,74 @@
-from urllib.parse import urlparse
+from app.services.country_filter import CountryFilter
 
 
 class SourceRanker:
 
-    TRUSTED_DOMAINS = {
-        "wildberries.by": 100,
-        "wildberries.ru": 100,
-        "wb.ru": 100,
+    PRIORITY = [
+        "wildberries.by",
+        "wildberries.ru",
+        ".gov.by",
+        ".gov",
+        ".edu",
+        ".org",
+        ".by",
+        ".ru",
+        ".kz",
+        "youtube.com",
+    ]
 
-        "ozon.ru": 100,
-        "ozon.by": 100,
+    def __init__(self) -> None:
+        self.country_filter = CountryFilter()
 
-        "government.by": 95,
-        "gov.by": 95,
+    def rank(
+        self,
+        sources: list[dict],
+        goal: str = "",
+    ) -> list[dict]:
 
-        "business.gov.by": 90,
+        country = self.country_filter.detect(goal)
 
-        "2gis.ru": 90,
-        "yandex.ru": 90,
-        "yandex.by": 90,
-
-        "journal.tinkoff.ru": 80,
-        "tbank.ru": 80,
-
-        "vc.ru": 70,
-        "rb.ru": 70,
-
-        "youtube.com": 40,
-        "pikabu.ru": 20,
-    }
-
-    def rank(self, sources: list[dict]) -> list[dict]:
-
-        unique = {}
+        unique = []
+        seen = set()
 
         for source in sources:
 
-            url = source.get("url", "")
+            url = source.get("url", "").strip()
 
-            if url not in unique:
-                unique[url] = source
+            if not url:
+                continue
 
-        ranked = list(unique.values())
+            if url in seen:
+                continue
 
-        ranked.sort(
-            key=self.score,
-            reverse=True,
-        )
+            seen.add(url)
+            unique.append(source)
 
-        return ranked
+        def score(source: dict) -> tuple[int, int]:
 
-    def score(self, source: dict) -> int:
+            url = source.get("url", "").lower()
 
-        url = source.get("url", "")
+            local_bonus = 1
 
-        domain = urlparse(url).netloc.lower()
+            if country == "belarus" and ".by" in url:
+                local_bonus = 0
 
-        domain = domain.replace("www.", "")
+            elif country == "russia" and ".ru" in url:
+                local_bonus = 0
 
-        return self.TRUSTED_DOMAINS.get(
-            domain,
-            10,
+            elif country == "kazakhstan" and ".kz" in url:
+                local_bonus = 0
+
+            priority = 999
+
+            for index, domain in enumerate(self.PRIORITY):
+
+                if domain in url:
+                    priority = index
+                    break
+
+            return (local_bonus, priority)
+
+        return sorted(
+            unique,
+            key=score,
         )

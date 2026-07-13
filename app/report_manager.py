@@ -1,26 +1,80 @@
 from pathlib import Path
-from datetime import datetime
+import json
 
 
 class ReportManager:
 
-    def save(self, goal: str, report: str):
+    def __init__(self):
 
-        Path("reports").mkdir(exist_ok=True)
+        self.projects = Path("projects")
 
-        filename = (
+    def build_business_plan(self, goal: str) -> str:
+
+        project_name = (
             goal.lower()
             .replace(" ", "_")
-            .replace("/", "_")
-            .replace("\\", "_")
         )
 
-        now = datetime.now().strftime("%Y%m%d_%H%M%S")
+        project_dir = self.projects / project_name
 
-        filepath = Path("reports") / f"{filename}_{now}.md"
+        project_file = project_dir / "project.json"
 
-        with open(filepath, "w", encoding="utf-8") as f:
-            f.write(f"# {goal}\n\n")
-            f.write(report)
+        if not project_file.exists():
 
-        return filepath
+            return "❌ Проект не найден."
+
+        project = json.loads(
+            project_file.read_text(
+                encoding="utf-8"
+            )
+        )
+
+        report = []
+
+        report.append("# БИЗНЕС-ПЛАН")
+        report.append("")
+        report.append(project["goal"])
+        report.append("")
+        report.append("---")
+        report.append("")
+
+        reports_dir = project_dir / "reports"
+
+        for task in project.get(
+            "reports",
+            []
+        ):
+
+            filename = (
+                task.lower()
+                .replace(" ", "_")
+                + ".md"
+            )
+
+            file = reports_dir / filename
+
+            if not file.exists():
+                continue
+
+            report.append(f"# {task}")
+            report.append("")
+            report.append(
+                file.read_text(
+                    encoding="utf-8"
+                )
+            )
+            report.append("")
+            report.append("---")
+            report.append("")
+
+        output = (
+            project_dir
+            / "business_plan.md"
+        )
+
+        output.write_text(
+            "\n".join(report),
+            encoding="utf-8",
+        )
+
+        return str(output)
