@@ -31,10 +31,6 @@ class SearchService:
 
         for item in result.get("results", []):
 
-            print(f"• {item.get('title','')}")
-            print(item.get("url",""))
-            print()
-
             sources.append(
                 {
                     "title": item.get("title", ""),
@@ -43,7 +39,16 @@ class SearchService:
                 }
             )
 
-        return self.ranker.rank(
+        sources = self.ranker.rank(
             sources=sources,
             goal=goal,
         )
+
+        print("✅ После фильтрации:\n")
+
+        for item in sources:
+            print(f"• {item['title']}")
+            print(item["url"])
+            print()
+
+        return sources

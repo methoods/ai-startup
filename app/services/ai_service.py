@@ -1,32 +1,27 @@
 from openai import OpenAI
 
 from app.config import BASE_URL, OPENAI_API_KEY
-from app.services.model_selector import ModelSelector
+from app.services.model_selector import MODELS
 
 
 class AIService:
 
-    def __init__(self):
-        self.selector = ModelSelector()
+    def __init__(self) -> None:
+        self.client = OpenAI(
+            api_key=OPENAI_API_KEY,
+            base_url=BASE_URL,
+        )
 
     def ask(self, prompt: str) -> str:
 
-        last_error = None
+        errors: list[str] = []
 
-        for _ in range(4):
-
-            model = self.selector.current()
+        for model in MODELS:
 
             print(f"\n🤖 Модель: {model}")
 
-            client = OpenAI(
-                api_key=OPENAI_API_KEY,
-                base_url=BASE_URL,
-            )
-
             try:
-
-                response = client.chat.completions.create(
+                response = self.client.chat.completions.create(
                     model=model,
                     messages=[
                         {
@@ -38,17 +33,55 @@ class AIService:
                     max_tokens=1500,
                 )
 
-                self.selector.reset()
+                if not response.choices:
+                    raise RuntimeError(
+                        "Провайдер вернул ответ без choices."
+                    )
 
-                return response.choices[0].message.content or ""
+                choice = response.choices[0]
 
-            except Exception as e:
+                if choice is None:
+                    raise RuntimeError(
+                        "Провайдер вернул пустой choice."
+                    )
 
-                last_error = e
+                message = getattr(choice, "message", None)
 
-                print(f"⚠️ {model} недоступна.")
+                if message is None:
+                    raise RuntimeError(
+                        "Провайдер вернул choice без message."
+                    )
+
+                content = getattr(message, "content", None)
+
+                if not isinstance(content, str):
+                    raise RuntimeError(
+                        "Провайдер вернул message без текстового content."
+                    )
+
+                content = content.strip()
+
+                if not content:
+                    raise RuntimeError(
+                        "Модель вернула пустой текст."
+                    )
+
+                print(f"✅ Ответ получен: {model}")
+
+                return content
+
+            except Exception as error:
+
+                error_text = f"{model}: {error}"
+                errors.append(error_text)
+
+                print(f"⚠️ {model} недоступна или вернула ошибку.")
+                print(f"Причина: {error}")
                 print("➡️ Переключаемся на следующую модель...")
 
-                self.selector.next()
+        details = "\n".join(errors)
 
-        return f"❌ Ошибка:\n\n{last_error}"
+        raise RuntimeError(
+            "Все модели недоступны или вернули некорректный ответ.\n\n"
+            f"{details}"
+        )

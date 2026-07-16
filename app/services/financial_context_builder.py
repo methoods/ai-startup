@@ -1,16 +1,20 @@
+from app.services.financial_extractor import FinancialExtractor
 from app.services.financial_research_agent import FinancialResearchAgent
 from app.services.search_service import SearchService
 
 
 class FinancialContextBuilder:
 
-    def __init__(self):
+    MAX_RESULTS_PER_QUERY = 3
+
+    def __init__(self) -> None:
         self.agent = FinancialResearchAgent()
         self.search = SearchService()
+        self.extractor = FinancialExtractor()
 
     def build(self, goal: str) -> str:
 
-        context = []
+        blocks: list[str] = []
 
         for query in self.agent.build_queries(goal):
 
@@ -21,24 +25,40 @@ class FinancialContextBuilder:
                     query=query,
                     goal=goal,
                 )
-
-            except Exception:
+            except Exception as error:
+                print(f"⚠️ Финансовый поиск пропущен: {error}")
                 continue
 
-            if not results:
-                continue
+            for item in results[: self.MAX_RESULTS_PER_QUERY]:
 
-            context.append(f"\n### {query}\n")
+                content = (
+                    item.get("content")
+                    or item.get("snippet")
+                    or ""
+                )
 
-            for item in results[:3]:
+                facts = self.extractor.extract(content)
 
-                title = item.get("title", "")
-                snippet = item.get("snippet", "")
-                url = item.get("url", "")
+                if not facts:
+                    continue
 
-                context.append(f"• {title}")
-                context.append(snippet)
-                context.append(url)
-                context.append("")
+                title = item.get("title", "").strip()
+                url = item.get("url", "").strip()
 
-        return "\n".join(context)
+                blocks.append(f"### Категория поиска: {query}")
+
+                if title:
+                    blocks.append(f"Источник: {title}")
+
+                if url:
+                    blocks.append(f"URL: {url}")
+
+                blocks.append(facts)
+                blocks.append("")
+
+        if not blocks:
+            return "Подтвержденные финансовые факты не найдены."
+
+        print("\n✅ Финансовые факты извлечены.\n")
+
+        return "\n".join(blocks)

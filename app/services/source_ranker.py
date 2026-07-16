@@ -4,8 +4,6 @@ from app.services.country_filter import CountryFilter
 class SourceRanker:
 
     PRIORITY = [
-        "wildberries.by",
-        "wildberries.ru",
         ".gov.by",
         ".gov",
         ".edu",
@@ -13,7 +11,32 @@ class SourceRanker:
         ".by",
         ".ru",
         ".kz",
+    ]
+
+    BLOCKED = [
+        "wiktionary.org",
+        "wikipedia.org",
+        "cooljugator.com",
         "youtube.com",
+        "youtu.be",
+        "tiktok.com",
+        "instagram.com",
+        "facebook.com",
+        "vk.com",
+        "ok.ru",
+        "mail.ru",
+        "otvet.mail.ru",
+    ]
+
+    BLOCKED_WORDS = [
+        "викисловар",
+        "wiktionary",
+        "википед",
+        "wikipedia",
+        "conjugation",
+        "спряжение",
+        "склонение",
+        "открыть —",
     ]
 
     def __init__(self) -> None:
@@ -32,9 +55,16 @@ class SourceRanker:
 
         for source in sources:
 
-            url = source.get("url", "").strip()
+            url = source.get("url", "").strip().lower()
+            title = source.get("title", "").strip().lower()
 
             if not url:
+                continue
+
+            if any(domain in url for domain in self.BLOCKED):
+                continue
+
+            if any(word in title for word in self.BLOCKED_WORDS):
                 continue
 
             if url in seen:
@@ -61,7 +91,6 @@ class SourceRanker:
             priority = 999
 
             for index, domain in enumerate(self.PRIORITY):
-
                 if domain in url:
                     priority = index
                     break
